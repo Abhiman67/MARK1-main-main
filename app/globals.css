@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 220 100% 50%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 270 100% 50%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 220 14.3% 95.9%;
+    --accent-foreground: 220 8.9% 15.1%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 220 100% 50%;
+    --radius: 0.75rem;
+    --chart-1: 220 70% 50%;
+    --chart-2: 270 70% 50%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+  
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 220 100% 60%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 270 100% 60%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 220 100% 60%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 270 70% 50%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom glassmorphism styles */
+.glass {
+  @apply bg-white/10 backdrop-blur-lg border border-white/20;
+}
+
+.dark .glass {
+  @apply bg-white/5 backdrop-blur-lg border border-white/10;
+}
+
+/* Custom gradient backgrounds */
+.gradient-primary {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+}
+
+.gradient-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+}
+
+.dark .gradient-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+}
+
+/* Animation keyframes */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/50 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/70;
+}
+
+/* Print styles for PDF generation */
+@media print {
+  @page {
+    margin: 0.5in;
+    size: letter;
+  }
+
+  * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* Hide everything except resume content */
+  nav,
+  header,
+  footer,
+  .no-print,
+  button {
+    display: none !important;
+  }
+
+  /* Hide dialog overlay and chrome but show content */
+  [data-radix-dialog-overlay],
+  [data-radix-dialog-content] > div:first-child,
+  [data-radix-dialog-content] > button {
+    display: none !important;
+  }
+
+  /* Make dialog content visible and full-width */
+  [data-radix-dialog-content] {
+    position: static !important;
+    transform: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: white !important;
+  }
+
+  /* Show resume preview containers */
+  #resume-preview,
+  #resume-preview-modal {
+    display: block !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0.5in !important;
+    background: white !important;
+  }
+
+  /* Ensure proper page breaks */
+  .mb-8, .mb-6, h2, h3 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* Force color printing with exact values */
+  .bg-blue-100,
+  [class*="bg-blue-100"] {
+    background-color: #dbeafe !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .text-blue-800,
+  [class*="text-blue-800"] {
+    color: #1e40af !important;
+  }
+
+  .border-blue-500,
+  [class*="border-blue-500"] {
+    border-color: #3b82f6 !important;
+  }
+
+  .text-gray-900,
+  [class*="text-gray-900"] {
+    color: #111827 !important;
+  }
+
+  .text-gray-700,
+  [class*="text-gray-700"] {
+    color: #374151 !important;
+  }
+
+  .text-gray-600,
+  [class*="text-gray-600"] {
+    color: #4b5563 !important;
+  }
+
+  .text-gray-500,
+  [class*="text-gray-500"] {
+    color: #6b7280 !important;
+  }
+
+  /* Ensure backgrounds print */
+  .bg-white {
+    background-color: #ffffff !important;
+  }
+
+  /* Make sure text is visible */
+  h1, h2, h3, h4, h5, h6, p, span, li, div {
+    color: inherit !important;
+  }
+}
