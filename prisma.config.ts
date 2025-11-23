@@ -8,6 +8,6 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: env("DATABASE_URL"),
+    url: env("DATABASE_URL") ?? "postgresql://placeholder:placeholder@localhost:5432/placeholder",
   },
 });
