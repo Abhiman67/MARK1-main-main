@@ -31,7 +31,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { authService } from '@/lib/auth';
 import toast from 'react-hot-toast';
-import ProfileDropdown from '@/components/layout/ProfileDropdown';
+import dynamic from 'next/dynamic';
+const ProfileDropdown = dynamic(() => import('@/components/layout/ProfileDropdown'), { ssr: false, loading: () => <></> });
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },

@@ -29,7 +29,9 @@ import {
   History,
   RotateCcw,
   Check,
-  Upload
+  Upload,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -65,27 +67,31 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { saveAs } from 'file-saver';
+import toast from 'react-hot-toast';
 import { ResumeTemplate, type ResumeData, type TemplateType } from '@/components/resume/templates';
 import { SkillsTagInput } from '@/components/resume/SkillsTagInput';
 import { DateInput } from '@/components/resume/DateInput';
 import { AchievementList } from '@/components/resume/AchievementList';
-import { TemplatePreviewModal } from '@/components/resume/TemplatePreviewModal';
+import dynamic from 'next/dynamic';
 import { ATSScoreBadge, FloatingATSScoreBadge } from '@/components/resume/ATSScoreBadge';
-import { OnboardingWizard } from '@/components/resume/OnboardingWizard';
-import { VersionHistoryImproved } from '@/components/resume/VersionHistoryImproved';
-import { SectionOrderManager, type SectionConfig } from '@/components/resume/SectionOrderManager';
-import { ThemeCustomizer, type ThemeCustomization } from '@/components/resume/ThemeCustomizer';
-import { AwardsEditor } from '@/components/resume/AwardsEditor';
-import { VolunteerEditor } from '@/components/resume/VolunteerEditor';
-import { ProjectsEditor } from '@/components/resume/ProjectsEditor';
-import { CertificationsEditor } from '@/components/resume/CertificationsEditor';
-import { LanguagesEditor } from '@/components/resume/LanguagesEditor';
-import { LinksEditor } from '@/components/resume/LinksEditor';
 import { useAISuggestions } from '@/hooks/useAISuggestions';
-import { AISuggestionsPanel } from '@/components/resume/AISuggestionsPanel';
+
+// Dynamically loaded heavy resume subcomponents to reduce initial bundle
+const TemplatePreviewModal = dynamic(() => import('@/components/resume/TemplatePreviewModal').then(m => m.TemplatePreviewModal), { ssr: false });
+const OnboardingWizard = dynamic(() => import('@/components/resume/OnboardingWizard').then(m => m.OnboardingWizard), { ssr: false });
+const VersionHistoryImproved = dynamic(() => import('@/components/resume/VersionHistoryImproved').then(m => m.VersionHistoryImproved), { ssr: false });
+const SectionOrderManager = dynamic(() => import('@/components/resume/SectionOrderManager').then(m => m.SectionOrderManager), { ssr: false });
+const ThemeCustomizer = dynamic(() => import('@/components/resume/ThemeCustomizer').then(m => m.ThemeCustomizer), { ssr: false });
+const AwardsEditor = dynamic(() => import('@/components/resume/AwardsEditor').then(m => m.AwardsEditor), { ssr: false });
+const VolunteerEditor = dynamic(() => import('@/components/resume/VolunteerEditor').then(m => m.VolunteerEditor), { ssr: false });
+const ProjectsEditor = dynamic(() => import('@/components/resume/ProjectsEditor').then(m => m.ProjectsEditor), { ssr: false });
+const CertificationsEditor = dynamic(() => import('@/components/resume/CertificationsEditor').then(m => m.CertificationsEditor), { ssr: false });
+const LanguagesEditor = dynamic(() => import('@/components/resume/LanguagesEditor').then(m => m.LanguagesEditor), { ssr: false });
+const LinksEditor = dynamic(() => import('@/components/resume/LinksEditor').then(m => m.LinksEditor), { ssr: false });
+const AISuggestionsPanel = dynamic(() => import('@/components/resume/AISuggestionsPanel').then(m => m.AISuggestionsPanel), { ssr: false });
+const ResumeImportModal = dynamic(() => import('@/components/resume/ResumeImportModal').then(m => m.ResumeImportModal), { ssr: false });
 import { validateEmail, validatePhone, validateUrl, formatDateSafe, sanitizeFilename } from '@/lib/validation';
 import { InputError } from '@/components/ui/input-error';
-import { ResumeImportModal } from '@/components/resume/ResumeImportModal';
 import type { ImportedResumeData } from '@/lib/resume-import';
 
 // Data Models
@@ -456,6 +462,11 @@ export default function ResumePage() {
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [summaryInput, setSummaryInput] = useState('');
+  const [appliedSuggestionIndex, setAppliedSuggestionIndex] = useState<number | null>(null);
+  
+  // Professional Summary Generator
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [generatedSummary, setGeneratedSummary] = useState('');
   
   // New UX enhancement states
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -1483,6 +1494,9 @@ export default function ResumePage() {
     const suggestion = aiSuggestions[index];
     if (!suggestion) return;
 
+    // Track which suggestion is being applied
+    setAppliedSuggestionIndex(index);
+
     if (suggestion.type === 'keyword' && suggestion.keywords) {
       // Open modal to select keywords
       setSelectedKeywords(suggestion.keywords);
@@ -1499,17 +1513,10 @@ export default function ResumePage() {
       // Auto-apply format suggestions
       // Dismiss immediately
       setDismissedSuggestionIndexes((prev) => prev.includes(index) ? prev : [...prev, index]);
+      toast.success('Format suggestion applied!');
+      setAppliedSuggestionIndex(null);
       return;
     }
-
-    // Don't dismiss yet - wait for modal input
-    // Dismiss will happen after user confirms in modal
-
-    // re-analyze after applying
-    setTimeout(() => {
-      const r = resumesList.find(rr => rr.id === selectedId) || null;
-      analyzeResume(r);
-    }, 150);
   };
 
   // Modal handlers for AI suggestions
@@ -1520,11 +1527,22 @@ export default function ResumePage() {
     setIsKeywordModalOpen(false);
     setSelectedKeywords([]);
     
-    // Re-analyze
+    // Dismiss the suggestion that was applied
+    if (appliedSuggestionIndex !== null) {
+      setDismissedSuggestionIndexes((prev) => 
+        prev.includes(appliedSuggestionIndex) ? prev : [...prev, appliedSuggestionIndex]
+      );
+      setAppliedSuggestionIndex(null);
+    }
+    
+    // Show success toast
+    toast.success(`Added ${selectedKeywords.length} keyword${selectedKeywords.length > 1 ? 's' : ''} to skills!`);
+    
+    // Re-analyze and force re-render
     setTimeout(() => {
       const r = resumesList.find(rr => rr.id === selectedId) || null;
       analyzeResume(r);
-    }, 150);
+    }, 100);
   };
 
   const handleAddAchievement = () => {
@@ -1532,15 +1550,24 @@ export default function ResumePage() {
     if (selectedResume.experience.length > 0) {
       const expId = selectedResume.experience[0].id;
       addAchievement(expId, newAchievement.trim());
+      toast.success('Achievement added to resume!');
     }
     setIsAchievementModalOpen(false);
     setNewAchievement('');
     
-    // Re-analyze
+    // Dismiss the suggestion that was applied
+    if (appliedSuggestionIndex !== null) {
+      setDismissedSuggestionIndexes((prev) => 
+        prev.includes(appliedSuggestionIndex) ? prev : [...prev, appliedSuggestionIndex]
+      );
+      setAppliedSuggestionIndex(null);
+    }
+    
+    // Re-analyze and force re-render
     setTimeout(() => {
       const r = resumesList.find(rr => rr.id === selectedId) || null;
       analyzeResume(r);
-    }, 150);
+    }, 100);
   };
 
   const handleUpdateSummary = () => {
@@ -1549,11 +1576,97 @@ export default function ResumePage() {
     setIsSummaryModalOpen(false);
     setSummaryInput('');
     
-    // Re-analyze
+    // Dismiss the suggestion that was applied
+    if (appliedSuggestionIndex !== null) {
+      setDismissedSuggestionIndexes((prev) => 
+        prev.includes(appliedSuggestionIndex) ? prev : [...prev, appliedSuggestionIndex]
+      );
+      setAppliedSuggestionIndex(null);
+    }
+    
+    // Show success toast
+    toast.success('Summary updated successfully!');
+    
+    // Re-analyze and force re-render
     setTimeout(() => {
       const r = resumesList.find(rr => rr.id === selectedId) || null;
       analyzeResume(r);
-    }, 150);
+    }, 100);
+  };
+
+  const generateProfessionalSummary = async () => {
+    if (!selectedResume) return;
+    
+    setIsGeneratingSummary(true);
+    setGeneratedSummary('');
+    
+    try {
+      // Build context from resume content
+      const title = selectedResume.personalInfo.title || 'Professional';
+      const yearsOfExp = selectedResume.experience.length > 0 
+        ? selectedResume.experience.reduce((sum, exp) => {
+            const start = new Date(exp.startDate);
+            const end = exp.current ? new Date() : new Date(exp.endDate || new Date());
+            return sum + (end.getFullYear() - start.getFullYear());
+          }, 0)
+        : 0;
+      
+      const topSkills = selectedResume.skills.slice(0, 8).join(', ');
+      const companies = selectedResume.experience.map(exp => exp.company).slice(0, 3).join(', ');
+      const education = selectedResume.education.length > 0 
+        ? `${selectedResume.education[0].degree} from ${selectedResume.education[0].institution}`
+        : '';
+      
+      const keyAchievements = selectedResume.experience
+        .flatMap(exp => exp.achievements)
+        .filter(ach => /\d+%|\d+\s?(people|users|customers|sales|revenue|growth)|\b\d+\b/.test(ach))
+        .slice(0, 3);
+
+      const prompt = `Write a crisp, impactful professional summary (2-3 sentences, max 80 words) for a resume based on:
+
+Title: ${title}
+Years of Experience: ${yearsOfExp}+
+Key Skills: ${topSkills}
+Companies: ${companies}
+Education: ${education}
+Top Achievements: ${keyAchievements.join('; ')}
+
+The summary should:
+- Start with title and years of experience
+- Highlight 2-3 core strengths/skills
+- Mention 1 quantified achievement if available
+- Use strong action words
+- Be ATS-friendly (no fluff)
+- Sound confident and professional
+
+Write only the summary text, no extra commentary.`;
+
+      const response = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: prompt }),
+      });
+
+      if (!response.ok) throw new Error('Failed to generate summary');
+      
+      const data = await response.json();
+      const summary = data.response?.trim() || '';
+      
+      setGeneratedSummary(summary);
+      toast.success('Professional summary generated!');
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      toast.error('Failed to generate summary. Please try again.');
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
+  const applySummaryToResume = () => {
+    if (!selectedResume || !generatedSummary) return;
+    updateResumeField('summary', generatedSummary);
+    toast.success('Summary applied to resume!');
+    setGeneratedSummary('');
   };
 
   const toggleKeywordSelection = (keyword: string) => {
@@ -2056,6 +2169,80 @@ export default function ResumePage() {
                 ))}
               </div>
             </GlassCard>
+
+            {/* Professional Summary Generator */}
+            {selectedResume && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.15 }}
+                className="mt-4"
+              >
+                <GlassCard className="p-4" gradient>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="h-4 w-4 text-purple-500" />
+                      <h3 className="font-semibold text-sm">Professional Summary</h3>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={generateProfessionalSummary}
+                      disabled={isGeneratingSummary}
+                      className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700"
+                    >
+                      {isGeneratingSummary ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Generate
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {generatedSummary && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="space-y-3"
+                    >
+                      <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                        <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                          {generatedSummary}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-end space-x-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setGeneratedSummary('')}
+                        >
+                          Clear
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={applySummaryToResume}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Apply to Resume
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  {!generatedSummary && !isGeneratingSummary && (
+                    <p className="text-xs text-muted-foreground">
+                      Generate a crisp, ATS-friendly professional summary based on your resume content.
+                    </p>
+                  )}
+                </GlassCard>
+              </motion.div>
+            )}
           </motion.div>
 
           {/* Main Content */}

@@ -1,11 +1,12 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import dynamic from 'next/dynamic';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { Toaster } from 'react-hot-toast';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
+const Toaster = dynamic(() => import('react-hot-toast').then((mod) => mod.Toaster), { ssr: false });
 
 export const metadata: Metadata = {
   title: 'AI Career Coach - Your Personalized Career Development Platform',
